@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador — Agente Administrativo | Câmara Municipal de Mossoró/RN</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            legislative: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              600: '#1d4ed8',
+              700: '#1e40af',
+              800: '#1e3a8a',
+              900: '#172554',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    /* Modo Alto Contraste acessível */
+    body.high-contrast {
+      background-color: #000000 !important;
+      color: #ffffff !important;
+    }
+    body.high-contrast .hc-surface {
+      background-color: #0a0a0a !important;
+      color: #ffffff !important;
+      border-color: #facc15 !important;
+    }
+    body.high-contrast .hc-muted {
+      color: #e5e7eb !important;
+    }
+    body.high-contrast .hc-option:hover {
+      border-color: #facc15 !important;
+      background-color: #1f2937 !important;
+    }
+    body.high-contrast .hc-option-selected {
+      background-color: #facc15 !important;
+      color: #000000 !important;
+      border-color: #facc15 !important;
+    }
+    /* Escalas uniformes de fonte */
+    body.font-scale-sm .exam-text { font-size: 0.92rem; line-height: 1.55; }
+    body.font-scale-md .exam-text { font-size: 1.02rem; line-height: 1.65; }
+    body.font-scale-lg .exam-text { font-size: 1.15rem; line-height: 1.75; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-scale-md transition-colors duration-150">
+  <!-- Modal customizado para confirmações e avisos (sem alert/confirm nativos) -->
+  <div id="customModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="hc-surface bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6">
+      <h3 id="modalTitle" class="text-lg font-bold text-slate-900 mb-2">Confirmação</h3>
+      <p id="modalMessage" class="hc-muted text-sm text-slate-600 mb-6 leading-relaxed"></p>
+      <div id="modalActions" class="flex flex-wrap justify-end gap-3"></div>
+    </div>
+  </div>
+
+  <!-- Cabeçalho Principal -->
+  <header class="hc-surface bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <!-- Identificação do Concurso -->
+        <div class="flex items-start sm:items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-legislative-800 text-white flex items-center justify-center font-extrabold text-sm shrink-0 shadow-xs">
+            CMM
+          </div>
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                Concurso 2012 • Comperve/UFRN
+              </span>
+              <span class="text-xs font-medium text-slate-500 hc-muted">Nível Médio</span>
+            </div>
+            <h1 class="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+              Câmara Municipal de Mossoró/RN — Agente Administrativo
+            </h1>
+          </div>
+        </div>
+
+        <!-- Cronômetro, Controles de Acessibilidade e Finalização -->
+        <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2 sm:gap-3">
+          <!-- Cronômetro Regressivo de 3h00m -->
+          <div class="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 hc-surface">
+            <span class="text-xs font-semibold uppercase tracking-wide text-slate-500 hc-muted">Tempo:</span>
+            <span id="timerDisplay" class="font-mono text-base sm:text-lg font-bold text-legislative-800 tabular-nums">03:00:00</span>
+            <button id="toggleTimerBtn" type="button" onclick="toggleTimer()" class="ml-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-white hover:bg-slate-200 text-slate-700 border border-slate-300 transition cursor-pointer" title="Pausar ou retomar cronômetro">
+              Pausar
+            </button>
+          </div>
+
+          <!-- Tamanho de Fonte Uniforme -->
+          <div class="flex items-center bg-slate-100 border border-slate-200 rounded-xl p-1 hc-surface" role="group" aria-label="Tamanho da fonte">
+            <button type="button" onclick="setFontScale('sm')" id="fontBtn-sm" class="px-2.5 py-1 text-xs font-semibold rounded-lg text-slate-700 hover:bg-white transition cursor-pointer" title="Fonte compacta">A-</button>
+            <button type="button" onclick="setFontScale('md')" id="fontBtn-md" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-legislative-700 text-white transition cursor-pointer" title="Fonte padrão">A</button>
+            <button type="button" onclick="setFontScale('lg')" id="fontBtn-lg" class="px-2.5 py-1 text-xs font-semibold rounded-lg text-slate-700 hover:bg-white transition cursor-pointer" title="Fonte ampliada">A+</button>
+          </div>
+
+          <!-- Alto Contraste -->
+          <button type="button" onclick="toggleHighContrast()" id="contrastBtn" class="px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-800 transition cursor-pointer hc-surface" title="Alternar alto contraste">
+            Alto Contraste
+          </button>
+
+          <!-- Finalizar Prova -->
+          <button type="button" onclick="requestFinishExam()" id="finishExamBtn" class="px-4 py-2 text-xs sm:text-sm font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition cursor-pointer">
+            Finalizar Prova
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de Progresso e Filtro por Disciplina -->
+      <div class="mt-3 pt-3 border-t border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <!-- Filtro de Disciplinas -->
+        <div class="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Filtrar por disciplina">
+          <button type="button" data-filter="ALL" onclick="setFilter('ALL')" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-legislative-800 text-white transition cursor-pointer">
+            Todas (40)
+          </button>
+          <button type="button" data-filter="LP" onclick="setFilter('LP')" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer hc-surface">
+            Língua Portuguesa (01–15)
+          </button>
+          <button type="button" data-filter="CE" onclick="setFilter('CE')" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer hc-surface">
+            Conhecimentos Específicos (16–30)
+          </button>
+          <button type="button" data-filter="INF" onclick="setFilter('INF')" class="filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer hc-surface">
+            Informática (31–40)
+          </button>
+        </div>
+
+        <!-- Progresso -->
+        <div class="w-full md:w-72">
+          <div class="flex items-center justify-between text-xs font-semibold mb-1">
+            <span id="progressLabel" class="text-slate-600 hc-muted">Respondidas: 0 de 40 (0%)</span>
+            <span id="markedLabel" class="text-amber-600">Revisão: 0</span>
+          </div>
+          <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+            <div id="progressBar" class="h-full bg-legislative-700 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Banner de Status (ex.: prova pausada ou encerrada) -->
+  <div id="statusBanner" class="hidden bg-amber-50 border-b border-amber-200 text-amber-900">
+    <div id="statusBannerText" class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 text-xs sm:text-sm font-medium text-center"></div>
+  </div>
+
+  <!-- Conteúdo Principal do Simulado -->
+  <main id="examWorkspace" class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <!-- Coluna Esquerda / Principal: Questão Atual + Painel de Leitura (LP) -->
+      <section class="lg:col-span-8 space-y-5">
+        <!-- Painel de Leitura do Texto Base (exibido nas questões 01 a 15) -->
+        <article id="readingPanel" class="hc-surface bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden hidden">
+          <div class="px-5 py-3.5 bg-blue-50/70 border-b border-blue-100 flex items-center justify-between gap-2">
+            <div>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-legislative-800">Texto Base • Questões 01 a 15</span>
+              <h2 class="text-base sm:text-lg font-bold text-slate-900">À espera de um milagre</h2>
+              <p class="text-xs text-slate-600 hc-muted">Edson Franco — <em>Istoé</em>, 23 de março de 2012</p>
+            </div>
+            <button type="button" onclick="toggleTextCollapse()" id="toggleTextBtn" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-white hover:bg-blue-100 text-legislative-800 border border-blue-200 transition cursor-pointer shrink-0">
+              Recolher texto
+            </button>
+          </div>
+          <div id="readingPanelBody" class="p-5 sm:p-6 exam-text text-slate-700 hc-muted space-y-3.5 max-h-[360px] overflow-y-auto leading-relaxed">
+            <p>Quando estiver pronto para receber a Copa de 2014, o estádio do Maracanã terá uma capacidade para 76 mil pessoas. Kiribati, país que ocupa um arquipélago no Pacífico, está se preparando para despachar dois Maracanãs lotados para uma nação vizinha. Isso porque as ilhotas correm o risco de chegar ao final deste século engolidas pelo oceano. O processo parece irreversível: o aquecimento global derrete calotas polares, o nível do mar sobe e cobre uma região cujo ponto mais elevado não passa dos sete metros. Se o plano de deslocar a população se concretizar, será a maior migração forçada pelo clima da história.</p>
+            <p>Todo começo de ano, os kiribatianos são lembrados de que a necessidade de arrumar as malas se aproxima. Cada vez mais violentas, as ondas invadem as ruas de areia do arquipélago, destroem casas, espalham lixo e criam gigantescas poças permanentes. Outras soluções foram imaginadas. Primeiro, cercar as ilhas com paredões, ao custo de US$ 1 bilhão cada um. Pelo dobro disso, o governo cogitou produzir ilhas artificiais e flutuantes, similares às plataformas de petróleo. Nenhuma das ideias se mostrou viável.</p>
+            <p>O presidente Anote Tong não viu outra saída que não bater na porta do governo das Ilhas Fiji e iniciar a negociação para a compra de uma área de 20 quilômetros quadrados para dar uma nova casa para os kiribatianos. Tong não planeja embarcar todos os seus conterrâneos de uma vez. "Eles precisam encontrar empregos, não na condição de refugiados, mas como imigrantes com habilidades para oferecer", disse ele em entrevista ao Canal One, de Fiji. Para facilitar a adaptação dos kiribatianos ao novo território, o governo já colocou em prática o programa Educação para a Migração.</p>
+            <p>De longe, moradores de outras ilhas acompanham com apreensão o caso de Kiribati. Se as previsões mais pessimistas do Painel Intergovernamental de Mudanças Climáticas se confirmarem, os oceanos chegarão ao final do século 59 cm mais altos. Isso varreria do mapa o arquipélago de Tuvalu e as Ilhas Maldivas. Por enquanto, os tuvaluanos ainda acreditam que diques e muros podem resolver o problema. Mais atento ao exemplo de Kiribati, o governo das Maldivas já estuda comprar terras em outros países.</p>
+            <p>Para quem estuda os povos que se espalham pelas ilhas do Pacífico, o fato de as migrações forçadas pelo clima começarem por ali é um problema menor. Nascido nas Ilhas Fiji, o escritor e antropólogo Epeli Hau'ofa é autor do livro <em>"Our Sea of Islands"</em> (Nosso mar de ilhas), inédito no Brasil, e defende que os habitantes desses arquipélagos são historicamente grandes viajantes. A diferença é que, em vez de expandir seus horizontes, agora eles vão viajar porque a casa deles deixará de existir.</p>
+          </div>
+        </article>
+
+        <!-- Card da Questão Atual -->
+        <article class="hc-surface bg-white rounded-2xl border border-slate-200 shadow-xs p-5 sm:p-7">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-4 mb-5 border-b border-slate-100">
+            <div class="flex flex-wrap items-center gap-2">
+              <span id="qNumberBadge" class="px-3 py-1 rounded-xl text-xs font-extrabold bg-legislative-800 text-white">
+                Questão 01
+              </span>
+              <span id="qDisciplineBadge" class="px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200">
+                Língua Portuguesa
+              </span>
+              <span id="qTopicBadge" class="text-xs font-medium text-slate-500 hc-muted"></span>
+            </div>
+
+            <button type="button" onclick="toggleMarkReview()" id="markReviewBtn" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 transition cursor-pointer">
+              ☆ Marcar para revisar
+            </button>
+          </div>
+
+          <!-- Enunciado -->
+          <div id="questionPrompt" class="exam-text text-slate-900 font-medium mb-6 whitespace-pre-line"></div>
+
+          <!-- Alternativas A, B, C, D -->
+          <div id="optionsContainer" class="space-y-3" role="radiogroup" aria-label="Alternativas da questão"></div>
+
+          <!-- Barra de Navegação entre Questões -->
+          <div class="mt-7 pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+            <button type="button" onclick="navigateQuestion(-1)" id="prevBtn" class="px-4 py-2.5 rounded-xl text-sm font-semibold border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer hc-surface">
+              ← Anterior
+            </button>
+
+            <button type="button" onclick="clearCurrentAnswer()" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer hc-muted">
+              Limpar resposta
+            </button>
+
+            <button type="button" onclick="navigateQuestion(1)" id="nextBtn" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-legislative-800 hover:bg-legislative-900 text-white disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer shadow-xs">
+              Próxima →
+            </button>
+          </div>
+        </article>
+      </section>
+
+      <!-- Coluna Direita: Grade / Paleta das 40 Questões -->
+      <aside class="lg:col-span-4 hc-surface bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wide">Mapa das Questões</h2>
+          <span class="text-xs text-slate-500 hc-muted">Clique para navegar</span>
+        </div>
+
+        <!-- Legenda -->
+        <div class="grid grid-cols-2 gap-2 text-[11px] font-medium mb-4 pb-3 border-b border-slate-100 text-slate-600 hc-muted">
+          <div class="flex items-center gap-2">
+            <span class="w-4 h-4 rounded-md bg-legislative-800 inline-block"></span>
+            <span>Questão atual</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-4 h-4 rounded-md bg-emerald-600 inline-block"></span>
+            <span>Respondida</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-4 h-4 rounded-md bg-amber-400 inline-block"></span>
+            <span>Marcada p/ revisar</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-4 h-4 rounded-md bg-slate-100 border border-slate-300 inline-block"></span>
+            <span>Em branco</span>
+          </div>
+        </div>
+
+        <!-- Grade 40 botões -->
+        <div id="questionGrid" class="grid grid-cols-5 sm:grid-cols-8 lg:grid-cols-5 gap-2"></div>
+
+        <!-- Resumo por Bloco -->
+        <div class="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-600 hc-muted">
+          <div class="flex justify-between"><span>01–15: Língua Portuguesa</span><span id="statLP" class="font-semibold">0/15</span></div>
+          <div class="flex justify-between"><span>16–30: Conhec. Específicos</span><span id="statCE" class="font-semibold">0/15</span></div>
+          <div class="flex justify-between"><span>31–40: Informática</span><span id="statINF" class="font-semibold">0/10</span></div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Painel de Diagnóstico e Gabarito Comentado (exibido ao finalizar) -->
+  <section id="resultsSection" class="hidden max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <!-- Resumo Geral -->
+    <div class="hc-surface bg-white rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-100">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">
+            Diagnóstico Concluído
+          </span>
+          <h2 class="text-2xl font-extrabold text-slate-900 mt-2">Resultado Geral do Simulado</h2>
+          <p id="resultSubtitle" class="text-sm text-slate-600 hc-muted mt-1"></p>
+        </div>
+        <button type="button" onclick="restartExam()" class="px-5 py-3 rounded-xl text-sm font-bold bg-legislative-800 hover:bg-legislative-900 text-white shadow-xs transition cursor-pointer shrink-0">
+          ↻ Refazer Simulado
+        </button>
+      </div>
+
+      <!-- Métricas Principais -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 my-6">
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 hc-surface">
+          <div class="text-xs font-semibold text-slate-500 hc-muted">Acertos Totais</div>
+          <div id="scoreCount" class="text-2xl sm:text-3xl font-extrabold text-legislative-800 mt-1">0/40</div>
+        </div>
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 hc-surface">
+          <div class="text-xs font-semibold text-slate-500 hc-muted">Aproveitamento</div>
+          <div id="scorePercent" class="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-1">0%</div>
+        </div>
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 hc-surface">
+          <div class="text-xs font-semibold text-slate-500 hc-muted">Erros</div>
+          <div id="errorCount" class="text-2xl sm:text-3xl font-extrabold text-rose-600 mt-1">0</div>
+        </div>
+        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 hc-surface">
+          <div class="text-xs font-semibold text-slate-500 hc-muted">Em Branco</div>
+          <div id="blankCount" class="text-2xl sm:text-3xl font-extrabold text-amber-600 mt-1">0</div>
+        </div>
+      </div>
+
+      <!-- Desempenho por Disciplina -->
+      <h3 class="text-base font-bold text-slate-900 mb-3">Desempenho por Disciplina</h3>
+      <div id="disciplineBreakdown" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"></div>
+
+      <!-- Diagnóstico de Pontos Fortes e a Reforçar -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-slate-800">
+          <h4 class="text-sm font-bold text-emerald-900 mb-2">Pontos Fortes por Tópico</h4>
+          <ul id="strongTopicsList" class="text-xs sm:text-sm space-y-1.5 list-disc list-inside text-emerald-950"></ul>
+        </div>
+        <div class="p-4 rounded-2xl bg-rose-50/70 border border-rose-200 text-slate-800">
+          <h4 class="text-sm font-bold text-rose-900 mb-2">Tópicos que Exigem Atenção</h4>
+          <ul id="weakTopicsList" class="text-xs sm:text-sm space-y-1.5 list-disc list-inside text-rose-950"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gabarito Comentado Questão por Questão -->
+    <div class="hc-surface bg-white rounded-2xl border border-slate-200 shadow-xs p-6 sm:p-8">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div>
+          <h3 class="text-xl font-extrabold text-slate-900">Gabarito Comentado (Questões 01 a 40)</h3>
+          <p class="text-xs sm:text-sm text-slate-600 hc-muted">Compare sua resposta escolhida com o gabarito oficial e leia a análise comentada.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="renderReviewList('ALL')" class="review-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-legislative-800 text-white cursor-pointer">Todas</button>
+          <button type="button" onclick="renderReviewList('WRONG')" class="review-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer">Erros / Branco</button>
+          <button type="button" onclick="renderReviewList('CORRECT')" class="review-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer">Acertos</button>
+        </div>
+      </div>
+      <div id="reviewListContainer" class="space-y-4"></div>
+    </div>
+  </section>
+
+  <script>
+    // =========================================================================
+    // BASE DE DADOS DAS 40 QUESTÕES
+    // 01-15: Língua Portuguesa (Prova Mossoró/RN 2012 - Comperve)
+    // 16-30: Conhecimentos Específicos (Agente Administrativo - Inéditas)
+    // 31-40: Informática (Prova Mossoró/RN 2012 - Comperve)
+    // =========================================================================
+    const QUESTIONS = [
+      // ------------------- LÍNGUA PORTUGUESA (01 a 15) -------------------
+      {
+        num: 1,
+        discipline: 'LP',
+        disciplineName: 'Língua Portuguesa',
+        topic: 'Compreensão e Intenção Comunicativa',
+        prompt: '01. Considerando o texto em sua totalidade, a intenção comunicativa dominante é',
+        options: {
+          A: 'opinar sobre a decisão ineficaz do governo kiribatiano.',
+          B: 'mostrar as causas do processo de migração em massa dos kiribatianos.',
+          C: 'descrever as constantes ondas que destroem as casas dos kiribatianos.',
+          D: 'alertar sobre o processo irreversível do aquecimento global e o avanço do mar.'
+        },
+        correct: 'D',
+        comment: 'O texto evidencia que o aquecimento global derrete calotas polares e eleva o nível do mar de forma aparentemente irreversível, ameaçando submergir Kiribati e outros arquipélagos e provocando migração climática.'
+      },
+      {
+        num: 2,
+        discipline: 'LP',
+        disciplineName: 'Língua Portuguesa',
+        topic: 'Leitura e Inferência Textual',
+        prompt: '02. Segundo o autor do texto,',
+        options: {
+          A: 'a migração apenas será possível quando os kiribatianos participarem do curso Educação para a Migração.',
+          B: 'os habitantes das ilhas do Pacífico são grandes navegantes porque historicamente eles sempre gostaram de expandir seus conhecimentos geográficos.',
+          C: 'a construção de muros e diques não impedirá que os arquipélagos do Pacífico desapareçam com o avanço contínuo do nível do mar.',
+          D: 'os governos de Tuvalu e de Ilhas Maldivas pretendem também criar um programa de migração semelhante ao de Kiribati.'
+        },
+        correct: 'C',
+        comment: 'No texto, paredões e ilhas artificiais se mostraram inviáveis em Kiribati, e o avanço do mar ameaça varrer Tuvalu e Maldivas mesmo onde ainda se cogitam diques e muros.'
+      },
+      {
+        num: 3,
+        discipline: 'LP',
+        disciplineName: 'Língua Portuguesa',
+        topic: 'Coerência com o Texto Base',
+        prompt: '03. O período que expressa uma ideia contida no texto é:',
+        options: {
+          A: 'Os habitantes do arquipélago de Kiribati emigrarão para as Ilhas Fiji.',
+          B: 'A população das Ilhas Fiji está se preparando para receber os emigrantes de Kiribati.',
+          C: 'As ilhas de Kiribati estarão totalmente emersas até o final deste século.',
+          D: 'O governo de Kiribati fará uma sessão para entregar das novas casas.'
+        },
+        correct: 'A',
+        comment: 'O presidente Anote Tong iniciou negociação com o governo das Ilhas Fiji para comprar uma área de 20 km² destinada a dar nova casa aos kiribatianos.'
+      },
+      {
+        num: 4,
+        discipline: 'LP',
+        disciplineName: 'Língua Portuguesa',
+        topic: 'Tipologia e Sequência Textual',
+        prompt: '04. Considerando a intenção comunicativa prioritária, é correto afirmar que a sequência textual dominante é',
+        options: {
+          A: 'descritiva.',
+          B: 'argumentativa.',
+          C: 'narrativa.',
+          D: 'explicativa.'
+        },
+        correct: 'D',
+        comment: 'O texto jornalístico expõe e explica o fenômeno climático, suas consequências (elevação do mar, inviabilidade de obras, negociação por terras) e os fatores envolvidos.'
+      },
+      {
+        num: 5,
+        discipline: 'LP',
+        disciplineName: 'Língua Portuguesa',
+        topic: 'Crase',
+        prompt: '05. Sobre o título do texto, é correto afirmar que o uso do acento grave',
+        options: {
+          A: 'não se justifica visto que a frase não apresenta verbo que exija tal regência.',
+          B: 'não se justifica visto que inexiste um termo que exija a presença da preposição a.',
+          C: 'justifica-se visto que há um verbo elíptico que exige a presença da preposição a.',
+          D: 'justifica-se visto que o fenômeno da crase ocorre com todas as locuções adverbiais.'
+        },
+        correct: 'C',
+        comment: 'Na expressão "À espera de um milagre", há elipse de forma verbal (ex.: "Estando à espera..." / "Ficar à espera..."), exigindo a preposição "a" somada ao artigo feminino "a" ("a espera"). Além disso, locuções adverbiais femininas têm crase, mas não "todas" as locuções adverbiais em geral.'
+      },
+      {
+        num: 6,
+        discipline: 'LP',
+        disciplineName: 'Língua Portuguesa',
+        topic: 'Coesão e Equivalência Semântica',
+        prompt: 'As questões 06 e 07 referem-se ao período reproduzido a seguir.\n\n"O presidente Anote Tong não viu outra saída que não bater na porta do governo das Ilhas Fiji e iniciar a negociação para a compra de uma área de 20 quilômetros quadrados para dar uma nova casa para os kiribatianos."\n\n06. Uma redação mais coesa e que preserva o sentido desse período é apresentada em',
+        options: {
+          A: 'A única saída encontrada pelo presidente Anote Tong foi bater na porta do governo das Ilhas Fiji e iniciar a negociação para a compra de uma área de 20 quilômetros quadrados a fim de dar uma nova casa aos kiribatianos.',
+          B: 'De acordo com o presidente Anote Tong, negociar com o governo das Ilhas Fiji para construir novas casas numa área de 20 quilômetros para doar para os kiribatianos é a única solução.',
+          C: 'Para solucionar o problema de moradia dos kiribatianos, e conforme o presidente Anote Tong, não há outra saída - iniciou-se uma negociação para que se compre uma área de 20 quilômetros e se construam casas para dar uma nova casa a este povo.',
+          D: 'Para dar uma nova casa aos habitantes, o presidente de Kiribati comprará 20 quilômetros quadrados das Ilhas Fiji a única saída para Kiribati e construirá novas casas, solucionando assim o problema do po povo de Kiribati.'
+        },
+        correct: 'A',
+        comment: 'A alternativa A reestrutura o período com clareza e coesão ("A única saída encontrada... foi... a fim de..."), mantendo o sentido original e evitando repetições ou alterações de área (20 km²).'
+      },
+      {
+        num: 7,
+        discipline: 'LP',
+        disciplineName: 'Língua Portuguesa',
+        topic: 'Sintaxe do Período Composto e Termos',
+        prompt: '07. Considerando o período da questão anterior ("O presidente Anote Tong não viu outra saída que não bater na porta do governo das Ilhas Fiji e iniciar a negociação para a compra de uma área de 20 quilômetros quadrados para dar uma nova casa para os kiribatianos"), os termos em destaque na prova original ("que não bater...", "para a compra...", "para dar...") introduzem, respectivamente,',
+        options: {
+          A: 'adjunto adnominal, oração adjetiva e complemento nominal.',
+          B: 'complemento nominal, oração adverbial e objeto indireto.',
+          C: 'objeto indireto, oração substantiva e adjunto adnominal.',
+          D: 'oração adjetiva, objeto indireto, objeto direto.'
+        },
+        correct: 'A',
+        comment: 'Na estrutura avaliada pela banca, "que não bater..." atua vinculada ao antecedente ("outra saída" — oração adjetiva), "para a compra" liga-se ao substantivo/ação ("negociação") e "para dar..." expressa finalidade/complemento nominal.'
+      },
+      {
+        num: 8,
+        discipline: 'LP',
+        disciplineName: 'Língua Portuguesa',
+        topic: 'Pontuação',
+        prompt: '08. O período "Isso porque as ilhotas correm o risco de chegar ao final deste século engolidas pelo oceano" apresenta-se com problemas de pontuação. A opção que apresenta uma pontuação de acordo com português padrão é:',
+        options: {
+          A: 'Isso porque as ilhotas correm o risco de chegar, ao final deste século, engolidas pelo oceano.',
+          B: 'Isso porque as ilhotas correm o risco, de chegar ao final deste século, engolidas pelo oceano.',
+          C: 'Isso, porque, as ilhotas correm o risco de chegar ao final deste século engolidas pelo oceano.',
+          D: 'Isso porque as ilhotas, correm o risco de chegar ao final deste século, engolidas pelo oceano.'
+        },
+        correct: 'A',
+        comment: 'A expressão adverbial intercalada "ao final deste século" é corretamente isolada por vírgulas na alternativa A, sem separar sujeito de verbo nem regente de complemento.'
+      },
+      {
+        num: 9,
+        discipline: 'LP',
+        disciplineName: 'Língua Portuguesa',
+        topic: 'Flexão Verbal e Aspecto',
+        prompt: 'As questões 09 e 10 referem-se ao período a seguir.\n\n"Todo começo de ano, os kiribatianos são lembrados de que a necessidade de arrumar as malas se aproxima."\n\n09. No período, há uma descrição de uma situação rotineira. Para que essa intenção não se desfaça, esse período deve ser reescrito flexionando-se os verbos no',
+        options: {
+          A: 'pretérito imperfeito do subjuntivo.',
+          B: 'pretérito perfeito do indicativo.',
+          C: 'pretérito imperfeito do indicativo.',
+          D: 'pretérito perfeito do subjuntivo.'
+        },
+        correct: 'C',
+        comment: 'O pretérito imperfeito do indicativo expressa ação habitual, contínua ou rotineira no passado (ex.: "eram lembrados", "se aproximava").'
+      },
+      {
+        num: 10,
+        discipline: 'LP',
+        disciplineName: 'Língua Portuguesa',
+        topic: 'Correlação de Tempos Verbais',
+        prompt: '10. Mudando-se o tempo verbal e mantendo-se a mesma intenção comunicativa, a nova versão desse período será:',
+        options: {
+          A: 'Todo começo de ano, os kiribatianos foram lembrados de que a necessidade de arrumar as malas se aproximava.',
+          B: 'Todo começo de ano, os kiribatianos foram lembrados de que a necessidade de arrumar as malas se aproximou.',
+          C: 'Todo começo de ano, os kiribatianos tinham sido lembrados de que a necessidade de arrumar as malas se aproximou.',
+          D: 'Todo começo de ano, os kiribatianos eram lembrados de que a necessidade de arrumar as malas se aproximava.'
+        },
+        correct: 'D',
+        comment: 'Apenas a opção D mantém o pretérito imperfeito do indicativo ("eram lembrados" e "se aproximava"), preservando o sentido habitual/rotineiro no passado.'
+      },
+      {
+        num: 11,
+        discipline: 'LP',
+        disciplineName: 'Língua Portuguesa',
+        topic: 'Concordância e Norma Culta',
+        prompt: '11. A frase que está de acordo com o português padrão escrito é:',
+        options: {
+          A: 'É necessário a transferência dos kiribatianos para outra ilha.',
+          B: 'Daqui há alguns anos, a ilha de Kiribati estará submersa.',
+          C: 'As ilhas Maldivas também poderão desaparecer até o final do século.',
+          D: 'A maioria dos kiribatianos será transferidos para as Ilhas Fiji.'
+        },
+        correct: 'C',
+        comment: 'A opção C apresenta concordância verbal e nominal regular ("As ilhas Maldivas... poderão"). Em A, faltaria concordância/artigo ("É necessária a transferência"); em B, há pleonasmo de tempo ("Daqui a alguns anos"); em D, "será transferidos" fere a concordância.'
+      },
+      {
+        num: 12,
+        discipline: 'LP',
+        disciplineName: 'Língua Portuguesa',
+        topic: 'Orações Subordinadas Adverbiais',
+        prompt: '12. As orações "porque a casa deles deixará de existir" e "para receber a copa de 2014" traduzem, respectivamente, a ideia de',
+        options: {
+          A: 'condição e tempo.',
+          B: 'concessão e restrição.',
+          C: 'consequência e causa.',
+          D: 'explicação e finalidade.'
+        },
+        correct: 'D',
+        comment: '"Porque a casa deles deixará de existir" introduz explicação/justificativa do motivo da viagem; "para receber a copa de 2014" indica finalidade.'
+      },
+      {
+        num: 13,
+        discipline: 'LP',
+        disciplineName: 'Língua Portuguesa',
+        topic: 'Acentuação Gráfica',
+        prompt: '13. A série que leva o acento agudo, do mesmo modo que século, com base na mesma regra ortográfica, é',
+        options: {
+          A: 'conterrâneo, território, petróleo.',
+          B: 'estádio, irreversível, pacífico.',
+          C: 'arquipélago, viável, história.',
+          D: 'inédito, quilômetros, antropólogo.'
+        },
+        correct: 'D',
+        comment: '"Século" é proparoxítona acentuada com acento agudo. Na alternativa D, "inédito", "quilômetros" (no caso com acento na série original da prova) e "antropólogo" são proparoxítonas.'
+      },
+      {
+        num: 14,
+        discipline: 'LP',
+        disciplineName: 'Língua Portuguesa',
+        topic: 'Morfossintaxe da Partícula SE',
+        prompt: '14. No período "Se as previsões mais pessimistas do Painel Intergovernamental de Mudanças Climáticas se confirmarem, os oceanos chegarão ao final do século 59 cm mais altos", as palavras em destaque ("Se" inicial e "se" em "se confirmarem") funcionam, respectivamente, como',
+        options: {
+          A: 'partículas apassivadoras.',
+          B: 'conjunção condicional e partícula apassivadora.',
+          C: 'índice de indeterminação do sujeito.',
+          D: 'conjunção integrante e índice de indeterminação do sujeito.'
+        },
+        correct: 'B',
+        comment: 'O primeiro "Se" inicia oração adverbial condicional; o segundo "se" acompanha verbo transitivo direto ("confirmarem") com sujeito paciente ("as previsões..."), atuando como partícula apassivadora.'
+      },
+      {
+        num: 15,
+        discipline: 'LP',
+        disciplineName: 'Língua Portuguesa',
+        topic: 'Coesão Sequencial e Conectivos',
+        prompt: '15. No trecho "Pelo dobro disso, o governo cogitou produzir ilhas artificiais e flutuantes, similares às plataformas de petróleo. Nenhuma das ideias se mostrou viável", os dois períodos podem ser conectados, sem alteração de sentido, por',
+        options: {
+          A: '"portanto", estabelecendo uma relação de conclusão.',
+          B: '"entretanto", estabelecendo uma relação de adversidade.',
+          C: '"visto que", estabelecendo uma relação de causa.',
+          D: '"e", estabelecendo uma relação de adição.'
+        },
+        correct: 'B',
+        comment: 'Há oposição/quebra de expectativa entre cogitar construir ilhas artificiais e nenhuma ideia se mostrar viável, relação adversativa expressa por "entretanto".'
+      },
+
+      // ------------ CONHECIMENTOS ESPECÍFICOS - AGENTE ADMINISTRATIVO (16 a 30) ------------
+      {
+        num: 16,
+        discipline: 'CE',
+        disciplineName: 'Conhecimentos Específicos',
+        topic: 'Princípios da Administração Pública',
+        prompt: '16. Um Agente Administrativo da Câmara Municipal de Mossoró recebe solicitação para priorizar o andamento de um processo administrativo de interesse de um vereador da base aliada, em detrimento de outros cidadãos na mesma fila cronológica. Com base nos princípios constitucionais da Administração Pública (art. 37 da CF/88), a conduta adequada do agente é',
+        options: {
+          A: 'atender ao pedido com urgência, pois a eficiência administrativa exige agilidade nas demandas do Poder Legislativo.',
+          B: 'recusar o favorecimento indevido, observando a impessoalidade e a moralidade administrativas, tratando os administrados sem privilégios pessoais.',
+          C: 'encaminhar o processo diretamente ao arquivo corrente para evitar conflito político entre setores.',
+          D: 'cobrar taxa de urgência do requerente para justificar a antecipação do trâmite.'
+        },
+        correct: 'B',
+        comment: 'O princípio da impessoalidade veda promoções pessoais ou favorecimentos indevidos, e a moralidade impõe probidade, boa-fé e respeito ao interesse público.'
+      },
+      {
+        num: 17,
+        discipline: 'CE',
+        disciplineName: 'Conhecimentos Específicos',
+        topic: 'Poderes Administrativos',
+        prompt: '17. Durante uma inspeção predial em imóvel locado pela Câmara Municipal, constata-se vazamento grave que coloca em risco imediato a rede elétrica e a segurança dos servidores. A medida urgente de interditar o acesso ao local antes de decisão judicial prévia decorre do atributo típico do poder de polícia denominado',
+        options: {
+          A: 'vinculação.',
+          B: 'autoexecutoriedade.',
+          C: 'delegabilidade plena.',
+          D: 'prescrição.'
+        },
+        correct: 'B',
+        comment: 'A autoexecutoriedade permite à Administração executar diretamente suas decisões, inclusive em situações de urgência, sem precisar recorrer previamente ao Poder Judiciário.'
+      },
+      {
+        num: 18,
+        discipline: 'CE',
+        disciplineName: 'Conhecimentos Específicos',
+        topic: 'Atos Administrativos',
+        prompt: '18. Ao revisar um ato administrativo praticado por servidor sem competência legal, mas que não envolve lesão ao interesse público nem prejuízo a terceiros, a autoridade competente avalia o saneamento do defeito. Esse instituto denomina-se',
+        options: {
+          A: 'revogação.',
+          B: 'anulação por conveniência.',
+          C: 'convalidação.',
+          D: 'cassação.'
+        },
+        correct: 'C',
+        comment: 'A convalidação (ou saneamento) corrige vícios sanáveis — como o vício de competência (exceto competência exclusiva) ou de forma não essencial — quando não há prejuízo ao interesse público ou a terceiros.'
+      },
+      {
+        num: 19,
+        discipline: 'CE',
+        disciplineName: 'Conhecimentos Específicos',
+        topic: 'Redação Oficial e Correspondência',
+        prompt: '19. Na redação de expedientes oficiais e comunicações administrativas no serviço público, a linguagem deve priorizar clareza, objetividade e formalidade adequada. Sobre o fecho de comunicações oficiais, a prática padrão estabelece',
+        options: {
+          A: 'o uso de expressões rebuscadas e latim em excesso para conferir maior solenidade a despachos rotineiros.',
+          B: 'o emprego de "Atenciosamente" para autoridades de hierarquia superior e "Respeitosamente" para autoridades da mesma hierarquia ou inferiores.',
+          C: 'o emprego de "Respeitosamente" para autoridades superiores (inclusive o Presidente da República) e "Atenciosamente" para autoridades de mesma hierarquia, inferiores ou demais destinatários.',
+          D: 'a dispensa de identificação do signatário quando o documento for enviado por correio eletrônico institucional.'
+        },
+        correct: 'C',
+        comment: 'Na redação oficial padrão, utiliza-se "Respeitosamente" para autoridades superiores e "Atenciosamente" para autoridades de mesma hierarquia, hierarquia inferior ou demais pessoas.'
+      },
+      {
+        num: 20,
+        discipline: 'CE',
+        disciplineName: 'Conhecimentos Específicos',
+        topic: 'Arquivologia e Gestão Documental',
+        prompt: '20. Na gestão de documentos em um órgão público, os processos de compras e pagamentos ainda em tramitação ou sujeitos a consultas frequentes pelas áreas envolvidas encontram-se, em regra, na fase de',
+        options: {
+          A: 'arquivo permanente.',
+          B: 'arquivo corrente.',
+          C: 'eliminação imediata sem tabela de temporalidade.',
+          D: 'restauração museológica.'
+        },
+        correct: 'B',
+        comment: 'O arquivo corrente reúne os documentos de uso frequente e vigente, necessários ao andamento cotidiano das atividades administrativas.'
+      },
+      {
+        num: 21,
+        discipline: 'CE',
+        disciplineName: 'Conhecimentos Específicos',
+        topic: 'Arquivologia e Classificação',
+        prompt: '21. Em arquivologia, o instrumento que estabelece os prazos de guarda nos arquivos corrente e intermediário e define a destinação final dos documentos (eliminação ou guarda permanente) é',
+        options: {
+          A: 'o plano de cargos e salários.',
+          B: 'a tabela de temporalidade documental.',
+          C: 'o balancete de verificação.',
+          D: 'o inventário patrimonial de bens móveis.'
+        },
+        correct: 'B',
+        comment: 'A tabela de temporalidade define prazos de retenção em cada fase do ciclo vital dos documentos e determina sua destinação final com segurança jurídica.'
+      },
+      {
+        num: 22,
+        discipline: 'CE',
+        disciplineName: 'Conhecimentos Específicos',
+        topic: 'Gestão de Materiais e Almoxarifado',
+        prompt: '22. No controle de estoque de materiais de expediente em um almoxarifado público, o método PEPS (Primeiro que Entra, Primeiro que Sai) ou FIFO significa que',
+        options: {
+          A: 'os últimos itens recebidos são sempre os primeiros a serem expedidos, independentemente da validade.',
+          B: 'os itens que ingressaram há mais tempo no estoque são os primeiros a sair para consumo.',
+          C: 'apenas materiais permanentes podem ser registrados no almoxarifado.',
+          D: 'o inventário físico dispensa conferência periódica quando há sistema informatizado.'
+        },
+        correct: 'B',
+        comment: 'Pelo critério PEPS/FIFO (First In, First Out), os lotes mais antigos que entraram no estoque saem primeiro, favorecendo o giro adequado e o controle de validade.'
+      },
+      {
+        num: 23,
+        discipline: 'CE',
+        disciplineName: 'Conhecimentos Específicos',
+        topic: 'Gestão Patrimonial',
+        prompt: '23. A incorporação de um bem móvel permanente (como um microcomputador ou mobiliário) ao patrimônio da Câmara Municipal exige, entre outras rotinas administrativas,',
+        options: {
+          A: 'a baixa imediata na contabilidade antes do recebimento físico do bem.',
+          B: 'o registro patrimonial, o tombamento/emplacamento e a conferência com a nota fiscal e o termo de recebimento.',
+          C: 'a alienação direta sem avaliação prévia.',
+          D: 'a transferência para uso particular de agente público mediante recibo informal.'
+        },
+        correct: 'B',
+        comment: 'A gestão patrimonial exige conferência do recebimento, registro contábil/patrimonial e identificação (tombamento) para rastreabilidade e controle dos bens públicos.'
+      },
+      {
+        num: 24,
+        discipline: 'CE',
+        disciplineName: 'Conhecimentos Específicos',
+        topic: 'Atendimento ao Público',
+        prompt: '24. Durante o atendimento presencial a um cidadão que busca informações sobre o andamento de um requerimento na Câmara, o Agente Administrativo deve',
+        options: {
+          A: 'adotar postura cordial, escuta ativa e linguagem acessível, informando com precisão os trâmites ou orientando corretamente quando o assunto pertencer a outro setor.',
+          B: 'interromper o cidadão e responder de forma ríspida caso ele não conheça a nomenclatura técnica do processo.',
+          C: 'negar informações públicas básicas sem justificativa legal ou protocolo.',
+          D: 'exigir documentos não previstos em norma apenas para retardar o atendimento.'
+        },
+        correct: 'A',
+        comment: 'O atendimento ao público na Administração pressupõe urbanidade, clareza, presteza, escuta ativa e orientação objetiva ao cidadão.'
+      },
+      {
+        num: 25,
+        discipline: 'CE',
+        disciplineName: 'Conhecimentos Específicos',
+        topic: 'Ética no Serviço Público',
+        prompt: '25. A ética no serviço público transcende o cumprimento estrito da lei ao exigir conduta íntegra, imparcial e comprometida com o bem comum. Constitui violação de dever ético do servidor',
+        options: {
+          A: 'manter sigilo sobre informações pessoais ou sigilosas obtidas em razão do cargo.',
+          B: 'tratar com urbanidade os usuários do serviço público.',
+          C: 'utilizar informações privilegiadas obtidas no exercício da função para benefício próprio ou de terceiros.',
+          D: 'zelar pela economia de material e pela conservação do patrimônio público.'
+        },
+        correct: 'C',
+        comment: 'Valer-se de informação privilegiada ou da função pública para obter vantagens indevidas fere frontalmente a moralidade e a ética administrativa.'
+      },
+      {
+        num: 26,
+        discipline: 'CE',
+        disciplineName: 'Conhecimentos Específicos',
+        topic: 'Processo Administrativo',
+        prompt: '26. Em um processo administrativo, a garantia de que o interessado seja cientificado dos atos decisórios e tenha oportunidade de manifestar-se e apresentar provas antes de uma decisão desfavorável relaciona-se diretamente aos princípios do',
+        options: {
+          A: 'contraditório e da ampla defesa.',
+          B: 'sigilo absoluto e da incomunicabilidade.',
+          C: 'revogação tácita e da autotutela judicial.',
+          D: 'iniciativa privada e da livre concorrência.'
+        },
+        correct: 'A',
+        comment: 'O contraditório (ciência bilateral dos atos e possibilidade de resposta) e a ampla defesa asseguram legitimidade e legalidade ao processo administrativo.'
+      },
+      {
+        num: 27,
+        discipline: 'CE',
+        disciplineName: 'Conhecimentos Específicos',
+        topic: 'Transparência e Acesso à Informação',
+        prompt: '27. De acordo com a lógica da transparência pública e do acesso à informação (Lei nº 12.527/2011), a regra geral na Administração Pública é',
+        options: {
+          A: 'o sigilo, sendo a publicidade exceção dependente de autorização legislativa.',
+          B: 'a publicidade e a transparência, sendo o sigilo exceção expressamente prevista em lei.',
+          C: 'a divulgação apenas de informações solicitadas por meio de advogado constituído.',
+          D: 'a restrição de dados orçamentários e de despesas até o encerramento do mandato.'
+        },
+        correct: 'B',
+        comment: 'Na Administração Pública democrática, a publicidade é a regra e o sigilo é exceção estritamente balizada por hipóteses legais de imprescindibilidade à segurança da sociedade ou do Estado ou dados pessoais protegidos.'
+      },
+      {
+        num: 28,
+        discipline: 'CE',
+        disciplineName: 'Conhecimentos Específicos',
+        topic: 'Controle da Administração Pública',
+        prompt: '28. O controle exercido pela própria Administração Pública sobre seus atos, permitindo anulá-los quando eivados de ilegalidade ou revogá-los por motivo de conveniência e oportunidade, denomina-se',
+        options: {
+          A: 'controle externo jurisdicional.',
+          B: 'controle interno / autotutela administrativa.',
+          C: 'controle parlamentar direto sobre sentenças.',
+          D: 'controle privado de auditoria.'
+        },
+        correct: 'B',
+        comment: 'A autotutela (Súmulas 346 e 473 do STF) confere à Administração o poder-dever de anular atos ilegais e revogar atos inconvenientes ou inoportunos no âmbito de seu controle interno.'
+      },
+      {
+        num: 29,
+        discipline: 'CE',
+        disciplineName: 'Conhecimentos Específicos',
+        topic: 'Comunicação e Protocolo Administrativo',
+        prompt: '29. Ao receber um documento externo destinado a determinado setor da Câmara Municipal, a rotina correta no serviço de protocolo envolve',
+        options: {
+          A: 'registrar/autuar o recebimento com data, identificação e resumo/assunto, encaminhando ao setor competente com controle de tramitação.',
+          B: 'entregar o documento a qualquer pessoa que passe pelo corredor sem registro.',
+          C: 'abrir correspondência lacrada endereçada pessoalmente a terceiro sem previsão ou competência.',
+          D: 'destruir o envelope e o comprovante de recebimento imediatamente.'
+        },
+        correct: 'A',
+        comment: 'O protocolo garante a rastreabilidade documental mediante registro, numeração/autuação, datação e controle do fluxo de tramitação.'
+      },
+      {
+        num: 30,
+        discipline: 'CE',
+        disciplineName: 'Conhecimentos Específicos',
+        topic: 'Organização e Rotinas Administrativas',
+        prompt: '30. Na organização do trabalho administrativo em equipe, a delegação de tarefas por um chefe a um Agente Administrativo',
+        options: {
+          A: 'transfere integralmente a responsabilidade final da chefia sobre o órgão para o subordinado.',
+          B: 'atribui a execução da atividade, mantendo o dever de orientação e supervisão, sem eximir a chefia de suas responsabilidades legais.',
+          C: 'aplica-se indistintamente a atos de competência privativa indelegável por lei.',
+          D: 'dispensa a definição clara de prazos, instruções e critérios de conferência.'
+        },
+        correct: 'B',
+        comment: 'Delegar é conferir atribuição para executar determinada atividade, preservando a orientação, o controle e a responsabilidade institucional do delegante nos limites da lei.'
+      },
+
+      // ------------------- INFORMÁTICA (31 a 40) -------------------
+      {
+        num: 31,
+        discipline: 'INF',
+        disciplineName: 'Informática',
+        topic: 'Unidades de Medida e Armazenamento',
+        prompt: '31. Mario precisou adquirir um novo computador para seu escritório. Como trabalha com fotografia digital e precisa de grande capacidade de armazenamento, procurou uma configuração com 1TB de Disco Rígido. Na caixa do equipamento, estava a indicação da capacidade do HD: 1000GB. Ao ligar o computador e observar a capacidade total do Disco Rígido com o Windows Explorer, ele viu o valor 0,91TB. Sendo assim, é correto afirmar que o',
+        options: {
+          A: 'fabricante usou o prefixo Tera (T) como sendo uma potência de 10 e o Windows usou para calcular a capacidade uma potência de 2.',
+          B: 'sistema operacional ocupou 0,09TB do disco rígido e portanto, a capacidade do disco está correta.',
+          C: 'disco estava com defeito e as partes funcionais, com a capacidade reduzida para 0,91TB.',
+          D: 'disco que foi entregue a Mario não corresponde à especificação do fabricante e deve ser reclamado ao vendedor.'
+        },
+        correct: 'A',
+        comment: 'Fabricantes de discos costumam usar base decimal (potências de 10: 1.000 GB = 1 TB), enquanto o sistema operacional calcula em base binária (potências de 2), resultando em valor menor exibido (cerca de 0,91 TB).'
+      },
+      {
+        num: 32,
+        discipline: 'INF',
+        disciplineName: 'Informática',
+        topic: 'Hardware e Periféricos',
+        prompt: '32. São periféricos de saída de dados de um computador',
+        options: {
+          A: 'o mouse e o monitor.',
+          B: 'o mouse e o teclado.',
+          C: 'a impressora e o teclado.',
+          D: 'a impressora e o monitor.'
+        },
+        correct: 'D',
+        comment: 'Monitor e impressora apresentam ou imprimem informações ao usuário, sendo periféricos de saída. Mouse e teclado são periféricos de entrada.'
+      },
+      {
+        num: 33,
+        discipline: 'INF',
+        disciplineName: 'Informática',
+        topic: 'Sistema Operacional Windows XP',
+        prompt: '33. No Windows XP, é possível configurar a aparência da barra de tarefas. Sobre as possibilidades previstas na janela "Propriedades da Barra de Tarefas e do Menu Iniciar", afirma-se:\n\nI. É possível bloquear a barra de tarefas.\nII. É possível alterar o ícone do botão "Iniciar".\nIII. É possível ocultar automaticamente a barra de tarefas.\nIV. É possível agrupar botões semelhantes da barra de tarefas.\n\nEstão corretas as afirmativas',
+        options: {
+          A: 'I, III e IV.',
+          B: 'I, II e III.',
+          C: 'II, III e IV.',
+          D: 'I, II e IV.'
+        },
+        correct: 'A',
+        comment: 'As opções nativas de "Propriedades da Barra de Tarefas" incluem bloquear a barra de tarefas, ocultá-la automaticamente e agrupar botões semelhantes; alterar diretamente o ícone do botão Iniciar não é uma opção padrão nativa dessa janela.'
+      },
+      {
+        num: 34,
+        discipline: 'INF',
+        disciplineName: 'Informática',
+        topic: 'Gerenciamento de Arquivos no Windows',
+        prompt: '34. Em um computador com Windows XP, os tipos de arquivos são identificados por sua extensão, como .docx ou .odt. Essas extensões são associadas a programas que abrem os arquivos. É possível que existam diversos softwares que abram um tipo de arquivo em particular. Nesse caso, usando o Windows Explorer, é possível escolher o software que vai abrir um arquivo',
+        options: {
+          A: 'com um clique duplo no botão esquerdo do mouse sobre o arquivo e escolhendo a opção "Associar a".',
+          B: 'com um clique no botão direito do mouse sobre o arquivo e escolhendo a opção "Abrir com".',
+          C: 'com um clique duplo no botão direito do mouse sobre o arquivo e escolhendo a opção "Associar a".',
+          D: 'com um clique no botão esquerdo do mouse sobre o arquivo e escolhendo a opção "Abrir com".'
+        },
+        correct: 'B',
+        comment: 'Clicando com o botão direito do mouse sobre o arquivo no Windows Explorer, abre-se o menu de contexto com a opção "Abrir com", permitindo escolher o programa.'
+      },
+      {
+        num: 35,
+        discipline: 'INF',
+        disciplineName: 'Informática',
+        topic: 'Editor de Textos — MS Word 2007',
+        prompt: '35. No MS Word 2007, é possível trabalhar com a identificação de um arquivo minutado, ainda em fase de rascunho, usando uma palavra por traz do texto. Esse efeito é conseguido usando-se',
+        options: {
+          A: 'as opções do botão "Efeitos de Tema" da faixa "Exibição".',
+          B: 'o botão "Texto fantasma", da faixa "Layout da Página".',
+          C: 'o botão "Temas", da faixa "Exibição".',
+          D: 'as opções do botão "Marca D\'água", da faixa "Layout da Página".'
+        },
+        correct: 'D',
+        comment: 'No MS Word 2007, o recurso de inserir texto semitransparente atrás do conteúdo (como "RASCUNHO" ou "CONFIDENCIAL") encontra-se em "Marca D\'água", na guia/faixa "Layout da Página".'
+      },
+      {
+        num: 36,
+        discipline: 'INF',
+        disciplineName: 'Informática',
+        topic: 'Mala Direta — MS Word 2007',
+        prompt: '36. Na faixa "Correspondências" do MS Word 2007, o botão "Concluir e Mesclar" é usado para',
+        options: {
+          A: 'localizar um destinatário em particular e gerar o arquivo correspondente, com os dados e o texto de uma mala direta.',
+          B: 'intercalar os dados dos destinatários com o texto da mala direta para efeito de visualização na tela.',
+          C: 'finalizar uma mala direta, gerando o texto e os dados dos destinatários correspondentes em um arquivo.',
+          D: 'salvar um arquivo com dados de destinatários e o texto de uma mala direta.'
+        },
+        correct: 'C',
+        comment: 'O botão "Concluir e Mesclar" conclui o processo de mala direta, gerando os documentos mesclados (em novo documento, impressão ou e-mail) com os dados de cada destinatário.'
+      },
+      {
+        num: 37,
+        discipline: 'INF',
+        disciplineName: 'Informática',
+        topic: 'Formatação em Colunas — Processador de Texto',
+        prompt: '37. O leiaute de um texto a ser digitado especifica duas colunas por página. Entretanto, o título do texto deve perpassar as duas colunas. O leiaute pode ser visto no quadro a seguir, inclusive com uma linha entre as colunas (título acima, seguido de duas colunas separadas por linha vertical).\n\nPara conseguir-se esse leiaute, é necessário:',
+        options: {
+          A: 'selecionar o texto a ser dividido em colunas; na faixa "Layout da Página", clicar no botão "Colunas" e escolher "Duas".',
+          B: 'selecionar o texto a ser dividido em colunas; na faixa "Layout da Página", clicar no botão "Colunas" e escolher "Mais Colunas" e parametrizar os dados.',
+          C: 'na faixa "Layout da Página", clicar no botão "Colunas" e escolher "Duas"; depois, selecionar o texto que deve ser dividido em colunas.',
+          D: 'na faixa "Layout da Página", clicar no botão "Colunas" e escolher "Mais Colunas"; parametrizar os dados e, depois, selecionar o texto que deve ser dividido em colunas.'
+        },
+        correct: 'B',
+        comment: 'Primeiro seleciona-se o trecho (sem o título que ficará acima) e, em "Layout da Página > Colunas > Mais Colunas", configuram-se duas colunas e a opção de linha entre colunas.'
+      },
+      {
+        num: 38,
+        discipline: 'INF',
+        disciplineName: 'Informática',
+        topic: 'Planilhas Eletrônicas — BrOffice.org Calc 3.2',
+        prompt: '38. Numa planilha do BrOffice.org Calc 3.2, estão anotados os preços de alguns produtos de diversos fornecedores:\n\nColuna A: Fornecedor 1 a Fornecedor 6 (linhas 2 a 7)\nColuna B (Produto 1): B2=202,34 | B3=201,54 | B4=(vazia) | B5=240,03 | B6=(vazia) | B7=236,32\nColuna C (Produto 2): C2=197,15 | C3=195,34 | C4=189,19 | C5=201,43 | C6=232,36 | C7=236,32\nLinha 8 (Média 1): 220,06 (Prod 1) | 208,63 (Prod 2)\nLinha 9 (Média 2): 146,71 (Prod 1) | 208,63 (Prod 2)\n\nO valor médio dos produtos foi calculado, usando duas fórmulas distintas. A primeira delas, na linha 8, encontrou o valor correto da média aritmética para ambos os produtos. Já a segunda fórmula, na linha 9, só funcionou corretamente para o produto 2. A razão pela qual o cálculo da Média 2 do produto 1 está incorreto é:',
+        options: {
+          A: 'a fórmula calculou o somatório dos valores dos produtos e dividiu pelo número de fornecedores, no caso 6.',
+          B: 'a fórmula considerou apenas a média dos fornecedores 1, 2 e 4, esquecendo o fornecedor 6.',
+          C: 'a fórmula usada foi média (B2:B7), que considera as células não preenchidas do intervalo como sendo zero.',
+          D: 'a fórmula usada foi soma (B2:B7)/cont.se (B2:B7; "<>""), que considera todas as células do intervalo B2 a B7.'
+        },
+        correct: 'A',
+        comment: 'A soma de B2:B7 é 880,23. Dividindo por 4 valores preenchidos, a média é 220,0575 (~220,06). Dividindo por 6 (total de fornecedores), obtém-se 880,23 / 6 = 146,705 (~146,71).'
+      },
+      {
+        num: 39,
+        discipline: 'INF',
+        disciplineName: 'Informática',
+        topic: 'Apresentações — MS PowerPoint',
+        prompt: '39. No MS PowerPoint, é possível definir o tempo que cada slide de uma apresentação deve ser mostrado. Para isso, o botão "Testar Intervalos" da faixa "Apresentação de slides", permite',
+        options: {
+          A: 'inserir uma animação na transição de slides, de tal forma que um cronômetro seja sempre mostrado entre um slide e outro.',
+          B: 'inserir um relógio na apresentação, sempre visível, indicando o tempo gasto nos testes da apresentação.',
+          C: 'testar a apresentação, gravando o intervalo de tempo usado em cada slide e tornando possível uma auto-execução da apresentação.',
+          D: 'temporizar intervalos para os testes da apresentação, permitindo assim ao apresentador controlar melhor o tempo da transição manual de slides.'
+        },
+        correct: 'C',
+        comment: 'O recurso "Testar Intervalos" (Rehearse Timings) cronometra e grava quanto tempo cada slide permanece na tela, permitindo reproduzir a apresentação automaticamente conforme os intervalos gravados.'
+      },
+      {
+        num: 40,
+        discipline: 'INF',
+        disciplineName: 'Informática',
+        topic: 'Segurança da Informação e Navegadores',
+        prompt: '40. Os bancos utilizam criptografia para acesso seguro a contas dos clientes usando navegadores da Internet. Existem algumas formas e sinais nos navegadores que permitem identificar conexões seguras. Uma das formas é',
+        options: {
+          A: 'monitorar os cookies com códigos que permitem capturar senhas.',
+          B: 'observar o uso de navegação privada - in private navigation.',
+          C: 'verificar a ausência de hackers com o filtro anti-phishing.',
+          D: 'observar o uso do protocolo https na barra de endereços do navegador.'
+        },
+        correct: 'D',
+        comment: 'O protocolo HTTPS (HyperText Transfer Protocol Secure) utiliza criptografia (TLS/SSL) na comunicação entre navegador e servidor, sendo indicativo de conexão segura.'
+      }
+    ];
+
+    // =========================================================================
+    // ESTADO DA APLICAÇÃO
+    // =========================================================================
+    const TOTAL_SECONDS = 3 * 60 * 60; // 3 horas = 10800s
+
+    let state = {
+      currentIndex: 0,
+      filter: 'ALL',
+      answers: {},       // { [questionNum]: 'A' | 'B' | 'C' | 'D' }
+      marked: {},        // { [questionNum]: boolean }
+      secondsLeft: TOTAL_SECONDS,
+      timerRunning: true,
+      finished: false,
+      highContrast: false,
+      fontScale: 'md',
+      textCollapsed: false
+    };
+
+    let timerInterval = null;
+
+    // =========================================================================
+    // MODAL CUSTOMIZADO (SUBSTITUI ALERT / CONFIRM)
+    // =========================================================================
+    function showModal({ title, message, buttons }) {
+      const modal = document.getElementById('customModal');
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalMessage').textContent = message;
+      const actions = document.getElementById('modalActions');
+      actions.innerHTML = '';
+
+      buttons.forEach(btn => {
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.textContent = btn.label;
+        el.className = btn.className || 'px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-200 hover:bg-slate-300 text-slate-800 cursor-pointer';
+        el.onclick = () => {
+          closeModal();
+          if (typeof btn.onClick === 'function') btn.onClick();
+        };
+        actions.appendChild(el);
+      });
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('customModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // =========================================================================
+    // CRONÔMETRO REGRESSIVO (3h00m)
+    // =========================================================================
+    function formatTime(sec) {
+      const safe = Math.max(0, sec);
+      const h = String(Math.floor(safe / 3600)).padStart(2, '0');
+      const m = String(Math.floor((safe % 3600) / 60)).padStart(2, '0');
+      const s = String(safe % 60).padStart(2, '0');
+      return `${h}:${m}:${s}`;
+    }
+
+    function updateTimerUI() {
+      const display = document.getElementById('timerDisplay');
+      display.textContent = formatTime(state.secondsLeft);
+
+      if (state.secondsLeft <= 600 && !state.finished) {
+        display.classList.remove('text-legislative-800');
+        display.classList.add('text-rose-600');
+      } else {
+        display.classList.remove('text-rose-600');
+        display.classList.add('text-legislative-800');
+      }
+    }
+
+    function startTimerLoop() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (state.finished || !state.timerRunning) return;
+        state.secondsLeft -= 1;
+        updateTimerUI();
+
+        if (state.secondsLeft <= 0) {
+          state.secondsLeft = 0;
+          updateTimerUI();
+          finishExam(true);
+        }
+      }, 1000);
+    }
+
+    function toggleTimer() {
+      if (state.finished) return;
+      state.timerRunning = !state.timerRunning;
+      const btn = document.getElementById('toggleTimerBtn');
+      const banner = document.getElementById('statusBanner');
+      const bannerText = document.getElementById('statusBannerText');
+
+      if (state.timerRunning) {
+        btn.textContent = 'Pausar';
+        banner.classList.add('hidden');
+      } else {
+        btn.textContent = 'Retomar';
+        banner.classList.remove('hidden');
+        bannerText.textContent = 'Cronômetro pausado. Clique em "Retomar" para continuar a contagem.';
+      }
+    }
+
+    // =========================================================================
+    // ACESSIBILIDADE E VISUAL (TAMANHO DE FONTE E ALTO CONTRASTE)
+    // =========================================================================
+    function setFontScale(scale) {
+      state.fontScale = scale;
+      document.body.classList.remove('font-scale-sm', 'font-scale-md', 'font-scale-lg');
+      document.body.classList.add(`font-scale-${scale}`);
+
+      ['sm', 'md', 'lg'].forEach(s => {
+        const btn = document.getElementById(`fontBtn-${s}`);
+        if (s === scale) {
+          btn.className = 'px-2.5 py-1 text-xs font-bold rounded-lg bg-legislative-700 text-white transition cursor-pointer';
+        } else {
+          btn.className = 'px-2.5 py-1 text-xs font-semibold rounded-lg text-slate-700 hover:bg-white transition cursor-pointer';
+        }
+      });
+    }
+
+    function toggleHighContrast() {
+      state.highContrast = !state.highContrast;
+      document.body.classList.toggle('high-contrast', state.highContrast);
+      const btn = document.getElementById('contrastBtn');
+      if (state.highContrast) {
+        btn.classList.add('ring-2', 'ring-yellow-400');
+      } else {
+        btn.classList.remove('ring-2', 'ring-yellow-400');
+      }
+    }
+
+    function toggleTextCollapse() {
+      state.textCollapsed = !state.textCollapsed;
+      const body = document.getElementById('readingPanelBody');
+      const btn = document.getElementById('toggleTextBtn');
+      body.classList.toggle('hidden', state.textCollapsed);
+      btn.textContent = state.textCollapsed ? 'Expandir texto' : 'Recolher texto';
+    }
+
+    // =========================================================================
+    // FILTRAGEM, NAVEGAÇÃO E RESPOSTAS
+    // =========================================================================
+    function getFilteredIndices() {
+      if (state.filter === 'ALL') {
+        return QUESTIONS.map((_, idx) => idx);
+      }
+      return QUESTIONS
+        .map((q, idx) => (q.discipline === state.filter ? idx : -1))
+        .filter(idx => idx !== -1);
+    }
+
+    function setFilter(filterKey) {
+      state.filter = filterKey;
+
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        const isSelected = btn.getAttribute('data-filter') === filterKey;
+        btn.className = isSelected
+          ? 'filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-legislative-800 text-white transition cursor-pointer'
+          : 'filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer hc-surface';
+      });
+
+      const filtered = getFilteredIndices();
+      if (!filtered.includes(state.currentIndex) && filtered.length > 0) {
+        state.currentIndex = filtered[0];
+      }
+      renderQuestion();
+      renderGrid();
+    }
+
+    function navigateQuestion(delta) {
+      const filtered = getFilteredIndices();
+      if (filtered.length === 0) return;
+
+      const pos = filtered.indexOf(state.currentIndex);
+      const nextPos = pos === -1 ? 0 : Math.min(filtered.length - 1, Math.max(0, pos + delta));
+      state.currentIndex = filtered[nextPos];
+      renderQuestion();
+      renderGrid();
+    }
+
+    function goToQuestionIndex(idx) {
+      if (idx < 0 || idx >= QUESTIONS.length) return;
+      state.currentIndex = idx;
+      renderQuestion();
+      renderGrid();
+    }
+
+    function selectOption(letter) {
+      if (state.finished) return;
+      const q = QUESTIONS[state.currentIndex];
+      state.answers[q.num] = letter;
+      renderQuestion();
+      renderGrid();
+      updateProgress();
+    }
+
+    function clearCurrentAnswer() {
+      if (state.finished) return;
+      const q = QUESTIONS[state.currentIndex];
+      delete state.answers[q.num];
+      renderQuestion();
+      renderGrid();
+      updateProgress();
+    }
+
+    function toggleMarkReview() {
+      if (state.finished) return;
+      const q = QUESTIONS[state.currentIndex];
+      state.marked[q.num] = !state.marked[q.num];
+      renderQuestion();
+      renderGrid();
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const answeredCount = Object.keys(state.answers).length;
+      const markedCount = Object.values(state.marked).filter(Boolean).length;
+      const pct = Math.round((answeredCount / QUESTIONS.length) * 100);
+
+      document.getElementById('progressLabel').textContent = `Respondidas: ${answeredCount} de ${QUESTIONS.length} (${pct}%)`;
+      document.getElementById('markedLabel').textContent = `Revisão: ${markedCount}`;
+      document.getElementById('progressBar').style.width = `${pct}%`;
+
+      // Contadores por bloco
+      const countBlock = (minN, maxN) => {
+        let c = 0;
+        for (let n = minN; n <= maxN; n++) {
+          if (state.answers[n]) c++;
+        }
+        return c;
+      };
+
+      document.getElementById('statLP').textContent = `${countBlock(1, 15)}/15`;
+      document.getElementById('statCE').textContent = `${countBlock(16, 30)}/15`;
+      document.getElementById('statINF').textContent = `${countBlock(31, 40)}/10`;
+    }
+
+    function renderQuestion() {
+      const q = QUESTIONS[state.currentIndex];
+      const filtered = getFilteredIndices();
+      const posInFilter = filtered.indexOf(state.currentIndex);
+
+      // Exibe painel do texto base apenas nas questões 01 a 15
+      const readingPanel = document.getElementById('readingPanel');
+      if (q.num >= 1 && q.num <= 15) {
+        readingPanel.classList.remove('hidden');
+      } else {
+        readingPanel.classList.add('hidden');
+      }
+
+      document.getElementById('qNumberBadge').textContent = `Questão ${String(q.num).padStart(2, '0')}`;
+      document.getElementById('qDisciplineBadge').textContent = q.disciplineName;
+      document.getElementById('qTopicBadge').textContent = `• ${q.topic}`;
+      document.getElementById('questionPrompt').textContent = q.prompt;
+
+      const isMarked = Boolean(state.marked[q.num]);
+      const markBtn = document.getElementById('markReviewBtn');
+      markBtn.textContent = isMarked ? '★ Marcada para revisar' : '☆ Marcar para revisar';
+      markBtn.className = isMarked
+        ? 'px-3.5 py-1.5 rounded-xl text-xs font-bold border border-amber-500 bg-amber-400 text-slate-950 transition cursor-pointer'
+        : 'px-3.5 py-1.5 rounded-xl text-xs font-semibold border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 transition cursor-pointer';
+
+      const selectedLetter = state.answers[q.num];
+      const optionsContainer = document.getElementById('optionsContainer');
+      optionsContainer.innerHTML = '';
+
+      ['A', 'B', 'C', 'D'].forEach(letter => {
+        const isSelected = selectedLetter === letter;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('role', 'radio');
+        btn.setAttribute('aria-checked', String(isSelected));
+        btn.disabled = state.finished;
+        btn.onclick = () => selectOption(letter);
+
+        btn.className = isSelected
+          ? 'hc-option hc-option-selected w-full text-left p-4 rounded-2xl border-2 border-legislative-700 bg-blue-50/90 text-slate-900 flex items-start gap-3.5 transition cursor-pointer shadow-2xs'
+          : 'hc-option w-full text-left p-4 rounded-2xl border border-slate-200 hover:border-legislative-600 hover:bg-slate-50/80 text-slate-800 flex items-start gap-3.5 transition cursor-pointer hc-surface';
+
+        const badge = document.createElement('span');
+        badge.className = isSelected
+          ? 'w-7 h-7 rounded-lg bg-legislative-800 text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5'
+          : 'w-7 h-7 rounded-lg bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5';
+        badge.textContent = letter;
+
+        const textSpan = document.createElement('span');
+        textSpan.className = 'exam-text leading-relaxed';
+        textSpan.textContent = q.options[letter];
+
+        btn.appendChild(badge);
+        btn.appendChild(textSpan);
+        optionsContainer.appendChild(btn);
+      });
+
+      document.getElementById('prevBtn').disabled = posInFilter <= 0;
+      document.getElementById('nextBtn').disabled = posInFilter >= filtered.length - 1;
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('questionGrid');
+      grid.innerHTML = '';
+
+      const filteredSet = new Set(getFilteredIndices());
+
+      QUESTIONS.forEach((q, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = String(q.num).padStart(2, '0');
+        btn.title = `Questão ${q.num} — ${q.disciplineName}`;
+        btn.onclick = () => goToQuestionIndex(idx);
+
+        const isCurrent = idx === state.currentIndex;
+        const isMarked = Boolean(state.marked[q.num]);
+        const isAnswered = Boolean(state.answers[q.num]);
+        const dimmed = !filteredSet.has(idx);
+
+        let colorClass = 'bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200';
+        if (isCurrent) {
+          colorClass = 'bg-legislative-800 text-white ring-2 ring-legislative-600 font-extrabold';
+        } else if (isMarked) {
+          colorClass = 'bg-amber-400 text-slate-950 font-bold border border-amber-500';
+        } else if (isAnswered) {
+          colorClass = 'bg-emerald-600 text-white font-bold';
+        }
+
+        btn.className = `h-10 rounded-xl text-xs transition cursor-pointer ${colorClass} ${dimmed ? 'opacity-35' : ''}`;
+        grid.appendChild(btn);
+      });
+    }
+
+    // =========================================================================
+    // FINALIZAÇÃO E DIAGNÓSTICO COMPLETO
+    // =========================================================================
+    function requestFinishExam() {
+      if (state.finished) return;
+      const unanswered = QUESTIONS.length - Object.keys(state.answers).length;
+
+      if (unanswered > 0) {
+        showModal({
+          title: 'Existem questões em branco',
+          message: `Você ainda tem ${unanswered} questão(ões) sem resposta. Deseja realmente finalizar a prova e gerar seu diagnóstico completo agora?`,
+          buttons: [
+            {
+              label: 'Continuar respondendo',
+              className: 'px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 cursor-pointer'
+            },
+            {
+              label: 'Finalizar mesmo assim',
+              className: 'px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer',
+              onClick: () => finishExam(false)
+            }
+          ]
+        });
+      } else {
+        finishExam(false);
+      }
+    }
+
+    function finishExam(byTimeout) {
+      state.finished = true;
+      state.timerRunning = false;
+
+      document.getElementById('finishExamBtn').disabled = true;
+      document.getElementById('finishExamBtn').classList.add('opacity-50', 'cursor-not-allowed');
+      document.getElementById('toggleTimerBtn').disabled = true;
+
+      const banner = document.getElementById('statusBanner');
+      const bannerText = document.getElementById('statusBannerText');
+      banner.classList.remove('hidden');
+      bannerText.textContent = byTimeout
+        ? 'Tempo regulamentar de 3h00m encerrado. Diagnóstico gerado automaticamente.'
+        : 'Prova finalizada. Confira abaixo seu desempenho por disciplina e o gabarito comentado.';
+
+      computeAndRenderResults();
+
+      document.getElementById('resultsSection').classList.remove('hidden');
+      document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function computeAndRenderResults() {
+      let correctTotal = 0;
+      let wrongTotal = 0;
+      let blankTotal = 0;
+
+      const discStats = {
+        LP: { name: 'Língua Portuguesa', total: 15, correct: 0, wrong: 0, blank: 0 },
+        CE: { name: 'Conhecimentos Específicos', total: 15, correct: 0, wrong: 0, blank: 0 },
+        INF: { name: 'Informática', total: 10, correct: 0, wrong: 0, blank: 0 }
+      };
+
+      const topicPerformance = {};
+
+      QUESTIONS.forEach(q => {
+        const userAns = state.answers[q.num];
+        if (!topicPerformance[q.topic]) {
+          topicPerformance[q.topic] = { topic: q.topic, disc: q.disciplineName, correct: 0, total: 0 };
+        }
+        topicPerformance[q.topic].total += 1;
+
+        if (!userAns) {
+          blankTotal += 1;
+          discStats[q.discipline].blank += 1;
+        } else if (userAns === q.correct) {
+          correctTotal += 1;
+          discStats[q.discipline].correct += 1;
+          topicPerformance[q.topic].correct += 1;
+        } else {
+          wrongTotal += 1;
+          discStats[q.discipline].wrong += 1;
+        }
+      });
+
+      const pct = ((correctTotal / QUESTIONS.length) * 100).toFixed(1).replace('.', ',');
+      const elapsedSec = TOTAL_SECONDS - state.secondsLeft;
+
+      document.getElementById('scoreCount').textContent = `${correctTotal}/${QUESTIONS.length}`;
+      document.getElementById('scorePercent').textContent = `${pct}%`;
+      document.getElementById('errorCount').textContent = String(wrongTotal);
+      document.getElementById('blankCount').textContent = String(blankTotal);
+      document.getElementById('resultSubtitle').textContent =
+        `Tempo utilizado: ${formatTime(elapsedSec)} de 03:00:00 • Banca referência: Comperve/UFRN`;
+
+      // Cards por disciplina
+      const breakdownEl = document.getElementById('disciplineBreakdown');
+      breakdownEl.innerHTML = '';
+
+      ['LP', 'CE', 'INF'].forEach(key => {
+        const st = discStats[key];
+        const dPct = Math.round((st.correct / st.total) * 100);
+        const card = document.createElement('div');
+        card.className = 'hc-surface p-4 rounded-2xl border border-slate-200 bg-slate-50/70';
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-sm font-bold text-slate-900">${st.name}</span>
+            <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">${st.correct}/${st.total} (${dPct}%)</span>
+          </div>
+          <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden mb-2">
+            <div class="h-full bg-legislative-700 rounded-full" style="width: ${dPct}%"></div>
+          </div>
+          <div class="flex justify-between text-xs text-slate-600 hc-muted">
+            <span>Acertos: <strong class="text-emerald-700">${st.correct}</strong></span>
+            <span>Erros: <strong class="text-rose-700">${st.wrong}</strong></span>
+            <span>Em branco: <strong class="text-amber-700">${st.blank}</strong></span>
+          </div>
+        `;
+        breakdownEl.appendChild(card);
+      });
+
+      // Diagnóstico por tópico (fortes vs a reforçar)
+      const topicsArr = Object.values(topicPerformance);
+      const strong = topicsArr.filter(t => t.correct === t.total).slice(0, 6);
+      const weak = topicsArr.filter(t => t.correct < t.total).slice(0, 8);
+
+      const strongList = document.getElementById('strongTopicsList');
+      strongList.innerHTML = strong.length
+        ? strong.map(t => `<li><strong>${t.topic}</strong> (${t.disc}) — ${t.correct}/${t.total}</li>`).join('')
+        : '<li>Continue praticando para consolidar tópicos com 100% de aproveitamento.</li>';
+
+      const weakList = document.getElementById('weakTopicsList');
+      weakList.innerHTML = weak.length
+        ? weak.map(t => `<li><strong>${t.topic}</strong> (${t.disc}) — ${t.correct}/${t.total}</li>`).join('')
+        : '<li>Excelente desempenho! Nenhum tópico apresentou falha neste simulado.</li>';
+
+      renderReviewList('ALL');
+    }
+
+    function renderReviewList(filterMode) {
+      document.querySelectorAll('.review-filter-btn').forEach(btn => {
+        const matches = btn.getAttribute('onclick').includes(`'${filterMode}'`);
+        btn.className = matches
+          ? 'review-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-legislative-800 text-white cursor-pointer'
+          : 'review-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer';
+      });
+
+      const container = document.getElementById('reviewListContainer');
+      container.innerHTML = '';
+
+      const filteredQuestions = QUESTIONS.filter(q => {
+        const userAns = state.answers[q.num];
+        const isCorrect = userAns === q.correct;
+        if (filterMode === 'CORRECT') return isCorrect;
+        if (filterMode === 'WRONG') return !isCorrect;
+        return true;
+      });
+
+      if (filteredQuestions.length === 0) {
+        container.innerHTML = '<p class="text-sm text-slate-500 py-4">Nenhuma questão encontrada para este filtro.</p>';
+        return;
+      }
+
+      filteredQuestions.forEach(q => {
+        const userAns = state.answers[q.num] || 'Em branco';
+        const isCorrect = userAns === q.correct;
+
+        const statusBadge = isCorrect
+          ? '<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">✓ Acertou</span>'
+          : userAns === 'Em branco'
+            ? '<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900">— Em branco</span>'
+            : '<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">✕ Errou</span>';
+
+        const item = document.createElement('div');
+        item.className = `hc-surface p-5 rounded-2xl border ${isCorrect ? 'border-emerald-200 bg-emerald-50/20' : 'border-slate-200 bg-white'}`;
+
+        const optionsHtml = ['A', 'B', 'C', 'D'].map(letter => {
+          let rowStyle = 'text-slate-700';
+          let tag = '';
+          if (letter === q.correct) {
+            rowStyle = 'font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-2.5 py-1.5';
+            tag = ' (Gabarito)';
+          } else if (letter === userAns && !isCorrect) {
+            rowStyle = 'font-semibold text-rose-800 bg-rose-50 border border-rose-200 rounded-xl px-2.5 py-1.5';
+            tag = ' (Sua resposta)';
+          }
+          return `<div class="text-xs sm:text-sm ${rowStyle}"><strong>${letter})</strong> ${q.options[letter]}${tag}</div>`;
+        }).join('');
+
+        item.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-extrabold text-legislative-800">Questão ${String(q.num).padStart(2, '0')}</span>
+              <span class="text-xs font-semibold text-slate-500 hc-muted">• ${q.disciplineName} • ${q.topic}</span>
+            </div>
+            ${statusBadge}
+          </div>
+          <p class="text-sm font-medium text-slate-900 whitespace-pre-line mb-3">${q.prompt}</p>
+          <div class="space-y-1.5 mb-3">${optionsHtml}</div>
+          <div class="p-3.5 rounded-xl bg-slate-100/90 text-xs sm:text-sm text-slate-700 leading-relaxed">
+            <strong class="text-slate-900">Comentário:</strong> ${q.comment}
+          </div>
+        `;
+
+        container.appendChild(item);
+      });
+    }
+
+    function restartExam() {
+      showModal({
+        title: 'Refazer Simulado',
+        message: 'Isso apagará todas as respostas atuais e reiniciará o cronômetro de 3h00m. Deseja prosseguir?',
+        buttons: [
+          {
+            label: 'Cancelar',
+            className: 'px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 cursor-pointer'
+          },
+          {
+            label: 'Reiniciar agora',
+            className: 'px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-legislative-800 hover:bg-legislative-900 text-white cursor-pointer',
+            onClick: () => {
+              state = {
+                ...state,
+                currentIndex: 0,
+                filter: 'ALL',
+                answers: {},
+                marked: {},
+                secondsLeft: TOTAL_SECONDS,
+                timerRunning: true,
+                finished: false,
+                textCollapsed: false
+              };
+
+              document.getElementById('resultsSection').classList.add('hidden');
+              document.getElementById('statusBanner').classList.add('hidden');
+              document.getElementById('finishExamBtn').disabled = false;
+              document.getElementById('finishExamBtn').classList.remove('opacity-50', 'cursor-not-allowed');
+              document.getElementById('toggleTimerBtn').disabled = false;
+              document.getElementById('toggleTimerBtn').textContent = 'Pausar';
+              document.getElementById('readingPanelBody').classList.remove('hidden');
+              document.getElementById('toggleTextBtn').textContent = 'Recolher texto';
+
+              setFilter('ALL');
+              updateTimerUI();
+              updateProgress();
+              startTimerLoop();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }
+        ]
+      });
+    }
+
+    // =========================================================================
+    // INICIALIZAÇÃO
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      updateTimerUI();
+      updateProgress();
+      renderQuestion();
+      renderGrid();
+      startTimerLoop();
+    });
+  </script>
+</body>
+</html>
